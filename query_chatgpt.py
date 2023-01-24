@@ -1,0 +1,98 @@
+#this would hopefully be replaced when chatgpt releases an api
+
+from revChatGPT.ChatGPT import Chatbot
+import config
+import pymongo
+import storage
+import time
+import os
+from serpapi import GoogleSearch
+import config
+def start_chatgpt():
+    chatbot = Chatbot({
+    "session_token": config.chat_gpt_token,
+    
+}, conversation_id=None, parent_id=None)
+    return chatbot
+
+def create_new_conv(chatbot):
+    chatbot.conversation_id = None
+    response = send_message("hello",None,chatbot)
+    return response["conversation_id"]
+
+def send_message(message,conversation_id,chatbot):
+    response = chatbot.ask(message, conversation_id=conversation_id, parent_id=None)
+    return response
+
+class WeatherGoogle():
+  def __init__(self, answer_box):
+    temperature = answer_box["temperature"]
+    unit = answer_box["unit"]
+    precipitation = answer_box["precipitation"]
+    humidity = answer_box["humidity"]
+    wind = answer_box["wind"]
+    self.result = f"The weather is {temperature} {unit}, the precipitation is {precipitation}, humidity is {humidity}, wind speed is {wind}"
+  def get_answer(self):
+    return self.result
+
+class TimeGoogle():
+  def __init__(self, answer_box):
+    result = answer_box["result"]
+    self.result = f"Time is {result}"
+  def get_answer(self):
+    return self.result
+
+class Calculator():
+  def __init__(self, answer_box):
+    result = answer_box["result"]
+    self.result = f"The value is {result}"
+  def get_answer(self):
+    return self.result
+
+def check_google_search(text):
+  search = GoogleSearch({
+    "q": text, 
+    "location": "Edmonton,Alberta,Canada",
+    "api_key": config.google_api_key
+  })
+  result = search.get_dict()
+  if "answer_box" in result:
+    if result["answer_box"]["type"] == "weather_result":
+      return WeatherGoogle(result["answer_box"]).get_answer()
+    elif result["answer_box"]["type"] == "local_time":
+      return TimeGoogle(result["answer_box"]).get_answer()
+    elif result["answer_box"]["type"] == "calculator_result":
+      return Calculator(result["answer_box"]).get_answer()
+    else:
+      return None
+  else:
+    return None
+def main_query(doc,chatbot,conversation_id): #doc is dictionary with user and name
+  user_msg_col = storage.get_msg_col()
+  gpt_msg_col = storage.get_gpt_msg_col()
+  user_msg_time = int(time.time())
+  
+  response_google = check_google_search(doc["text"])
+  response_gpt = send_message(doc["text"],None,chatbot) 
+
+  if(response_google == None): 
+    
+    response = response_gpt
+  else:
+    response = response_google 
+  user_msg = storage.Message(user_name = doc["username"],time_stamp = user_msg_time,text =doc["text"],conversation_id = response_gpt["conversation_id"])
+  resp_msg = storage.Message(user_name = doc["username"], time_stamp = int(time.time()), text = response["message"],conversation_id = response_gpt["conversation_id"])
+  # print(resp_msg.text)
+ 
+  user_msg_col.insert_one(user_msg.get_document())
+  gpt_msg_col.insert_one(resp_msg.get_document())
+  return resp_msg.get_document()
+
+if __name__ == "__main__":
+  chatbot = start_chatgpt()
+  doc ={
+    "username" :"rpi_user",
+    "text" : "hello"
+  }
+  print(main_query(doc,chatbot,None))
+  
