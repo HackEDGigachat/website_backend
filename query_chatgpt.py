@@ -73,15 +73,15 @@ def main_query(doc,chatbot,conversation_id): #doc is dictionary with user and na
   user_msg_time = int(time.time())
   
   response_google = check_google_search(doc["text"])
-  response_gpt = send_message(doc["text"],None,chatbot) 
+  
 
   if(response_google == None): 
-    
-    response = response_gpt
+    response_gpt = send_message(doc["text"],conversation_id,chatbot) 
+    resp_msg = storage.Message(user_name = doc["username"], time_stamp = int(time.time()), text = response_gpt["message"],conversation_id =conversation_id)
   else:
-    response = response_google 
-  user_msg = storage.Message(user_name = doc["username"],time_stamp = user_msg_time,text =doc["text"],conversation_id = response_gpt["conversation_id"])
-  resp_msg = storage.Message(user_name = doc["username"], time_stamp = int(time.time()), text = response["message"],conversation_id = response_gpt["conversation_id"])
+    resp_msg = storage.Message(user_name = doc["username"], time_stamp = int(time.time()), text = response_google,conversation_id = conversation_id)
+  user_msg = storage.Message(user_name = doc["username"],time_stamp = user_msg_time,text =doc["text"],conversation_id = conversation_id)
+  
   # print(resp_msg.text)
  
   user_msg_col.insert_one(user_msg.get_document())

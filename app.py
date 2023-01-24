@@ -72,7 +72,8 @@ def get_history():
 
     if(len(sorted_msgs) == 0):
       conversation_id = create_new_conv(config.chatbot)
-      group_sort_msg =[[conversation_id,[]]]
+      group_sort_msg =[[conversation_id,[[]]]]
+      print(group_sort_msg)
     return jsonify({"sorted_msgs":group_sort_msg})
     
 @app.route('/api/check_user', methods=['POST'])
