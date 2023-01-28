@@ -73,7 +73,7 @@ def get_history():
     if(len(sorted_msgs) == 0):
       conversation_id = create_new_conv(config.chatbot)
       group_sort_msg =[[conversation_id,[[]]]]
-      print(group_sort_msg)
+    print(group_sort_msg)
     return jsonify({"sorted_msgs":group_sort_msg})
     
 @app.route('/api/check_user', methods=['POST'])
@@ -97,7 +97,9 @@ def check_cred():
 @app.route('/api/new_conversation', methods=['POST'])
 def new_conversation():
   if request.method == 'POST':
+    print("creating a new ConvoId!")
     conversation_id = create_new_conv(chatbot=config.chatbot)
+    print("conversation_id")
     return jsonify({'conversation_id':conversation_id})
 
 
@@ -113,6 +115,7 @@ def reply():
       "text" : query
     }
     answer = main_query(doc=doc,chatbot=config.chatbot,conversation_id=data["conversation_id"])
+    print(answer['text'])
     return jsonify({'reply': answer['text']}), 200
     
 

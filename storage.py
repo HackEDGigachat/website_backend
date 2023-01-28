@@ -1,8 +1,8 @@
 import pymongo
-
+import config
 # singleton value
 def get_url():
-  url = "mongodb://bangghim1.duckdns.org:27019/"
+  url = config.mongo_url
   return url
 
 def get_client():
