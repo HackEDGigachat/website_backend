@@ -11,3 +11,5 @@ user_msg_col = storage.get_msg_col()
 gpt_msg_col = storage.get_gpt_msg_col()
 user_msg_col.delete_many({})
 gpt_msg_col.delete_many({})
+
+#####RUNNING THIS SCRIPT WILL DELETE THE DB🤓

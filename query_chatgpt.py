@@ -8,6 +8,7 @@ import time
 import os
 from serpapi import GoogleSearch
 import config
+from ai_gen_pic import ai_gen_pic
 def start_chatgpt():
     chatbot = Chatbot({
     "session_token": config.chat_gpt_token,
@@ -71,15 +72,20 @@ def main_query(doc,chatbot,conversation_id): #doc is dictionary with user and na
   user_msg_col = storage.get_msg_col()
   gpt_msg_col = storage.get_gpt_msg_col()
   user_msg_time = int(time.time())
-  
-  response_google = check_google_search(doc["text"])
+  if(doc["text"].lower().split()[:2] == ['ai', 'picture']):
+    prompt = " ".join(doc["text"].lower().split()[2:])
+    picture = ai_gen_pic(prompt)["data"][0]["url"]
+    resp_msg = storage.Message(user_name = doc["username"], time_stamp = int(time.time()), text = picture,conversation_id = conversation_id)
+    
+  else:
+    response_google = check_google_search(doc["text"])
   
 
-  if(response_google == None): 
-    response_gpt = send_message(doc["text"],conversation_id,chatbot) 
-    resp_msg = storage.Message(user_name = doc["username"], time_stamp = int(time.time()), text = response_gpt["message"],conversation_id =conversation_id)
-  else:
-    resp_msg = storage.Message(user_name = doc["username"], time_stamp = int(time.time()), text = response_google,conversation_id = conversation_id)
+    if(response_google == None): 
+      response_gpt = send_message(doc["text"],conversation_id,chatbot) 
+      resp_msg = storage.Message(user_name = doc["username"], time_stamp = int(time.time()), text = response_gpt["message"],conversation_id =conversation_id)
+    else:
+      resp_msg = storage.Message(user_name = doc["username"], time_stamp = int(time.time()), text = response_google,conversation_id = conversation_id)
   user_msg = storage.Message(user_name = doc["username"],time_stamp = user_msg_time,text =doc["text"],conversation_id = conversation_id)
   
   # print(resp_msg.text)
