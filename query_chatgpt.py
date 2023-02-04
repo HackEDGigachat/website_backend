@@ -1,6 +1,6 @@
 #this would hopefully be replaced when chatgpt releases an api
 
-from revChatGPT.ChatGPT import Chatbot
+from revChatGPT.Official import Chatbot
 import config
 import pymongo
 import storage
@@ -9,20 +9,18 @@ import os
 from serpapi import GoogleSearch
 import config
 from ai_gen_pic import ai_gen_pic
+import uuid
 def start_chatgpt():
-    chatbot = Chatbot({
-    "session_token": config.chat_gpt_token,
-    
-}, conversation_id=None, parent_id=None)
+    chatbot = Chatbot(api_key = config.open_api_key)
     return chatbot
 
 def create_new_conv(chatbot):
-    chatbot.conversation_id = None
-    response = send_message("hello",None,chatbot)
-    return response["conversation_id"]
+    uuid_chat = str(uuid.uuid4())
+    chatbot.make_conversation(uuid_chat)
+    return uuid_chat
 
 def send_message(message,conversation_id,chatbot):
-    response = chatbot.ask(message, conversation_id=conversation_id, parent_id=None)
+    response = chatbot.ask(message, conversation_id=conversation_id)["choices"][0]["text"]
     return response
 
 class WeatherGoogle():
@@ -75,6 +73,7 @@ def main_query(doc,chatbot,conversation_id): #doc is dictionary with user and na
   if(doc["text"].lower().split()[:2] == ['ai', 'picture']):
     prompt = " ".join(doc["text"].lower().split()[2:])
     picture = ai_gen_pic(prompt)["data"][0]["url"]
+    print(picture)
     resp_msg = storage.Message(user_name = doc["username"], time_stamp = int(time.time()), text = picture,conversation_id = conversation_id)
     
   else:
@@ -83,7 +82,7 @@ def main_query(doc,chatbot,conversation_id): #doc is dictionary with user and na
 
     if(response_google == None): 
       response_gpt = send_message(doc["text"],conversation_id,chatbot) 
-      resp_msg = storage.Message(user_name = doc["username"], time_stamp = int(time.time()), text = response_gpt["message"],conversation_id =conversation_id)
+      resp_msg = storage.Message(user_name = doc["username"], time_stamp = int(time.time()), text = response_gpt,conversation_id =conversation_id)
     else:
       resp_msg = storage.Message(user_name = doc["username"], time_stamp = int(time.time()), text = response_google,conversation_id = conversation_id)
   user_msg = storage.Message(user_name = doc["username"],time_stamp = user_msg_time,text =doc["text"],conversation_id = conversation_id)
@@ -98,7 +97,7 @@ if __name__ == "__main__":
   chatbot = start_chatgpt()
   doc ={
     "username" :"rpi_user",
-    "text" : "hello"
+    "text" : "what did i just say"
   }
-  print(main_query(doc,chatbot,None))
+  print(main_query(doc,chatbot,"22"))
   
