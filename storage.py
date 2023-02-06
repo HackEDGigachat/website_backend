@@ -20,11 +20,12 @@ def get_gpt_msg_col():
 
 
 class Message:  
-  def __init__(self, user_name, time_stamp,conversation_id, text):
+  def __init__(self, user_name, time_stamp,conversation_id, text,response_type="String"):
     self.user_name = user_name
     self.time_stamp = time_stamp
     self.text = text
     self.conversation_id = conversation_id
+    self.response_type = response_type
 
 
 
@@ -33,7 +34,8 @@ class Message:
       "username": self.user_name,
       "timestamp": self.time_stamp,
       "text": self.text,
-      "conversation_id":self.conversation_id
+      "conversation_id":self.conversation_id,
+      "response_type":self.response_type
     }
     return document
 

@@ -114,9 +114,9 @@ def reply():
       "username" :username,
       "text" : query
     }
-    answer = main_query(doc=doc,chatbot=config.chatbot,conversation_id=data["conversation_id"])
-    print(answer['text'])
-    return jsonify({'reply': answer['text']}), 200
+    answer,response_type = main_query(doc=doc,chatbot=config.chatbot,conversation_id=data["conversation_id"])
+    print(response_type)
+    return jsonify({'reply': answer['text'],'type':response_type}), 200
     
 
 

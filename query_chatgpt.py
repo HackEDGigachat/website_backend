@@ -10,6 +10,9 @@ from serpapi import GoogleSearch
 import config
 from ai_gen_pic import ai_gen_pic
 import uuid
+from newsapi import NewsApiClient
+from datetime import datetime, timedelta
+newsapi = NewsApiClient(api_key=config.news_api)
 def start_chatgpt():
     chatbot = Chatbot(api_key = config.open_api_key)
     return chatbot
@@ -66,38 +69,56 @@ def check_google_search(text):
       return None
   else:
     return None
+
 def main_query(doc,chatbot,conversation_id): #doc is dictionary with user and name
   user_msg_col = storage.get_msg_col()
   gpt_msg_col = storage.get_gpt_msg_col()
   user_msg_time = int(time.time())
+  response_type = "String"
   if(doc["text"].lower().split()[:2] == ['ai', 'picture']):
     prompt = " ".join(doc["text"].lower().split()[2:])
     picture = ai_gen_pic(prompt)["data"][0]["url"]
     print(picture)
     resp_msg = storage.Message(user_name = doc["username"], time_stamp = int(time.time()), text = picture,conversation_id = conversation_id)
+
+  elif(doc["text"].lower().split()[0]=="news" ):
+    prompt = " ".join(doc["text"].lower().split()[1:])
+    all_articles = newsapi.get_everything(q=prompt,from_param=datetime.today().date() - timedelta(days=1),
+                                      to=datetime.today().date(),sources='bbc-news,abc-news')['articles'][:9]
+    response_type ="news"
+    resp_msg = storage.Message(user_name = doc["username"], time_stamp = int(time.time()), text = all_articles,conversation_id =conversation_id,response_type=response_type)
     
   else:
     response_google = check_google_search(doc["text"])
-  
+
 
     if(response_google == None): 
       response_gpt = send_message(doc["text"],conversation_id,chatbot) 
-      resp_msg = storage.Message(user_name = doc["username"], time_stamp = int(time.time()), text = response_gpt,conversation_id =conversation_id)
+      resp_msg = storage.Message(user_name = doc["username"], time_stamp = int(time.time()), text = response_gpt,conversation_id =conversation_id,response_type=response_type)
+
     else:
+      
       resp_msg = storage.Message(user_name = doc["username"], time_stamp = int(time.time()), text = response_google,conversation_id = conversation_id)
+      chatbot.prompt.add_to_chat_history("User: "
+            + doc["text"]
+            + "\n\n\n"
+            + "ChatGPT: "
+            + response_google
+            + "<|im_end|>\n",)
+
   user_msg = storage.Message(user_name = doc["username"],time_stamp = user_msg_time,text =doc["text"],conversation_id = conversation_id)
   
   # print(resp_msg.text)
  
   user_msg_col.insert_one(user_msg.get_document())
   gpt_msg_col.insert_one(resp_msg.get_document())
-  return resp_msg.get_document()
+  return resp_msg.get_document(),response_type
 
 if __name__ == "__main__":
   chatbot = start_chatgpt()
   doc ={
     "username" :"rpi_user",
-    "text" : "what did i just say"
+    "text" : "news bitcoin"
   }
-  print(main_query(doc,chatbot,"22"))
-  
+  answer,response_type = main_query(doc,chatbot,"22")
+  print(response_type)
