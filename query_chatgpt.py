@@ -69,6 +69,14 @@ def check_google_search(text):
       return None
   else:
     return None
+def add_chat_hist(user_msg,bot_msg,chatbot):
+  chatbot.prompt.add_to_chat_history("User: "
+            + user_msg
+            + "\n\n\n"
+            + "ChatGPT: "
+            + bot_msg
+            + "<|im_end|>\n",)
+  return chatbot
 
 def main_query(doc,chatbot,conversation_id): #doc is dictionary with user and name
   user_msg_col = storage.get_msg_col()
@@ -80,14 +88,16 @@ def main_query(doc,chatbot,conversation_id): #doc is dictionary with user and na
     picture = ai_gen_pic(prompt)["data"][0]["url"]
     print(picture)
     resp_msg = storage.Message(user_name = doc["username"], time_stamp = int(time.time()), text = picture,conversation_id = conversation_id)
+    chatbot = add_chat_hist(doc["text"],"picture url from DALL·E"+str(resp_msg),chatbot)
 
   elif(doc["text"].lower().split()[0]=="news" ):
     prompt = " ".join(doc["text"].lower().split()[1:])
     all_articles = newsapi.get_everything(q=prompt,from_param=datetime.today().date() - timedelta(days=1),
-                                      to=datetime.today().date(),sources='bbc-news,abc-news')['articles'][:9]
+                                      to=datetime.today().date(),sources='bbc-news,abc-news,bloomberg,espn,fox-sports,google-news')['articles'][:9]
     response_type ="news"
     resp_msg = storage.Message(user_name = doc["username"], time_stamp = int(time.time()), text = all_articles,conversation_id =conversation_id,response_type=response_type)
-    
+    chatbot = add_chat_hist(doc["text"],"here is the a set of news articles you asked for"+str(all_articles),chatbot)
+
   else:
     response_google = check_google_search(doc["text"])
 
@@ -99,12 +109,9 @@ def main_query(doc,chatbot,conversation_id): #doc is dictionary with user and na
     else:
       
       resp_msg = storage.Message(user_name = doc["username"], time_stamp = int(time.time()), text = response_google,conversation_id = conversation_id)
-      chatbot.prompt.add_to_chat_history("User: "
-            + doc["text"]
-            + "\n\n\n"
-            + "ChatGPT: "
-            + response_google
-            + "<|im_end|>\n",)
+      chatbot = add_chat_hist(doc["text"],response_google,chatbot)
+
+    
 
   user_msg = storage.Message(user_name = doc["username"],time_stamp = user_msg_time,text =doc["text"],conversation_id = conversation_id)
   
